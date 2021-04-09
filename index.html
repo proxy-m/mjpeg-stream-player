@@ -1,0 +1,88 @@
+<html>
+<head>
+	<meta charset="UTF-8">
+<script>
+
+	var DEFAULT_FPS = 24,
+		DEFAULT_AUTOLOOP = true,
+		JPEG_MAGIG_NUMBER = [0xff, 0xd8, 0xff];
+
+
+
+	function splitMJPEG(mjpegUrl, callback) {
+fetch(mjpegUrl)
+.then(response => response.body)
+.then(rb => {
+  const reader = rb.getReader();
+
+  return new ReadableStream({
+    start(controller) {
+      // The following function handles each data chunk
+      function push() {
+        // "done" is a Boolean and value a "Uint8Array"
+        reader.read().then( ({done, value}) => {
+          // If there is no more data to read
+          if (done) {
+            console.log('done', done);
+            controller.close();
+            return;
+          }
+          ///// Get the data and send it to the browser via the controller
+          ///controller.enqueue(value);
+          // Check chunks by logging to the console
+          ///console.log(done, value);
+          
+          
+          
+          var array = new Uint8Array(value),
+				startIndex,
+				jpegs = [];
+			///alert(array.length);
+
+			for (var i=0, ii=array.length; i<ii; ++i) {
+				if (array[i] === JPEG_MAGIG_NUMBER[0] && array[i+1] === JPEG_MAGIG_NUMBER[1] && array[i+2] === JPEG_MAGIG_NUMBER[2]) {
+					if (i>0 && typeof startIndex === 'number') {
+						///alert(array.subarray(startIndex, i));
+						///alert(String.fromCharCode.apply(null, array.subarray(startIndex, i)));
+						jpegs.push(new Blob([array.subarray(startIndex, i)], {type: 'image/jpeg'}));
+					}
+					startIndex = i;
+				}
+			}
+
+			callback(jpegs);
+          
+          
+          push();
+        })
+      }
+
+      push();
+    }
+});
+});	
+}
+		
+
+var mjpegUrl = './data/grill-mjpeg.mov';
+
+splitMJPEG(mjpegUrl, function(jpegFiles) {
+			if (jpegFiles.length > 0) {
+				var nextFrameIndex = 0;
+				
+				///console.log(jpegFiles[0]);
+				
+				var img = new Image(640,480);
+				img.src = URL.createObjectURL(jpegFiles[0]);
+				
+				document.body.innerHTML = '';
+				document.body.append(img);
+			}
+});
+
+
+</script>
+</head>
+<body>
+</body>
+</html>
