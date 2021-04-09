@@ -1,13 +1,14 @@
+<!DOCTYPE html>
 <html>
 <head>
 	<meta charset="UTF-8">
+	
 <script>
-
 	var DEFAULT_FPS = 24,
 		DEFAULT_AUTOLOOP = true,
 		JPEG_MAGIG_NUMBER = [0xff, 0xd8, 0xff];
-
-
+		
+	var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame || window.setTimeout;
 
 	function splitMJPEG(mjpegUrl, callback) {
 fetch(mjpegUrl)
@@ -34,7 +35,7 @@ fetch(mjpegUrl)
           
           
           
-          var array = new Uint8Array(value),
+          var array = value, ///new Uint8Array(value),
 				startIndex,
 				jpegs = [];
 			///alert(array.length);
@@ -62,27 +63,83 @@ fetch(mjpegUrl)
 });
 });	
 }
-		
 
-var mjpegUrl = './data/grill-mjpeg.mov';
+	function playMJPEGInternal(wrapperElement, mjpegUrl, fps, autoloop) {
+		fps = (typeof fps === 'number') ? fps : DEFAULT_FPS;
+		autoloop = (typeof autoloop === 'boolean') ? autoloop : DEFAULT_AUTOLOOP;
 
-splitMJPEG(mjpegUrl, function(jpegFiles) {
+		var playbackFinished = false,
+			imageElement = document.createElement('img'),
+			jpegUrl;
+
+		imageElement.setAttribute('style', 'width:100%;');
+		wrapperElement.appendChild(imageElement);
+
+		splitMJPEG(mjpegUrl, function(jpegFiles) {
 			if (jpegFiles.length > 0) {
 				var nextFrameIndex = 0;
-				
-				///console.log(jpegFiles[0]);
-				
-				var img = new Image(640,480);
-				img.src = URL.createObjectURL(jpegFiles[0]);
-				
-				document.body.innerHTML = '';
-				document.body.append(img);
+
+				function showNextFrame() {
+					if (imageElement) {
+						if (jpegUrl) {
+							URL.revokeObjectURL(jpegUrl);
+						}
+						if (nextFrameIndex >= jpegFiles.length) {
+							return;
+						}
+						jpegUrl = URL.createObjectURL(jpegFiles[nextFrameIndex++]);
+						
+						imageElement.onerror = function() {
+							setTimeout(function() {
+								requestAnimationFrame(showNextFrame);
+							}, 1000/fps);
+						};
+
+						imageElement.onload = function() {
+							
+							if (imageElement) {
+								if (autoloop || nextFrameIndex < jpegFiles.length) {
+									nextFrameIndex = (nextFrameIndex === jpegFiles.length) ? 0 : nextFrameIndex;
+									setTimeout(function() {
+										requestAnimationFrame(showNextFrame);
+									}, 1000/fps);
+								}
+							}
+						};
+						
+						imageElement.setAttribute('src', jpegUrl);
+					}
+				};
+
+				setTimeout(function() {
+					requestAnimationFrame(showNextFrame);
+				}, 1000/fps);
 			}
-});
+		});
+
+		return {
+			finish: function() {
+				if (imageElement) {
+					imageElement.src = '';
+					wrapperElement.removeChild(imageElement);
+					imageElement = undefined;
+				}
+			}
+		};	
+	};
 
 
 </script>
 </head>
 <body>
+	<div id="mjpeg_stream_player_wrapper">
+	</div>
+	
+	<script>
+		var mjpegUrl = './data/grill-mjpeg.mov';
+		var fps = 55;
+		var autoloop = false; // not supported now
+		playMJPEGInternal(document.getElementById('mjpeg_stream_player_wrapper'), mjpegUrl, fps, autoloop);
+	</script>
 </body>
 </html>
