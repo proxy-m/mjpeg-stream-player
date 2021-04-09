@@ -4,11 +4,15 @@
 	<meta charset="UTF-8">
 	
 <script>
+	'use strict';
 	var DEFAULT_FPS = 24,
 		DEFAULT_AUTOLOOP = true,
 		JPEG_MAGIG_NUMBER = [0xff, 0xd8, 0xff];
 		
 	var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame || window.setTimeout;
+	
+	var jpegs = [];
+	var oldReminder = new Uint8Array(0);
 
 	function splitMJPEG(mjpegUrl, callback) {
 fetch(mjpegUrl)
@@ -35,10 +39,15 @@ fetch(mjpegUrl)
           
           
           
-          var array = value, ///new Uint8Array(value),
-				startIndex,
-				jpegs = [];
+          var array = new Uint8Array(value),
+				startIndex;
 			///alert(array.length);
+			var tmpNew = new Uint8Array(oldReminder.length + array.length);
+			tmpNew.set(oldReminder);
+			tmpNew.set(array, oldReminder.length);
+			oldReminder = new Uint8Array(0);
+			
+			array = tmpNew;
 
 			for (var i=0, ii=array.length; i<ii; ++i) {
 				if (array[i] === JPEG_MAGIG_NUMBER[0] && array[i+1] === JPEG_MAGIG_NUMBER[1] && array[i+2] === JPEG_MAGIG_NUMBER[2]) {
@@ -50,6 +59,12 @@ fetch(mjpegUrl)
 					startIndex = i;
 				}
 			}
+			///console.log(startIndex, array.length);
+			oldReminder = array.subarray(startIndex);
+			if (oldReminder.length > 20000000) {
+				oldReminder = new Uint8Array(0); ///
+			}
+			////
 
 			callback(jpegs);
           
@@ -78,16 +93,17 @@ fetch(mjpegUrl)
 		splitMJPEG(mjpegUrl, function(jpegFiles) {
 			if (jpegFiles.length > 0) {
 				var nextFrameIndex = 0;
+				///console.log(jpegFiles[nextFrameIndex]);
 
 				function showNextFrame() {
 					if (imageElement) {
 						if (jpegUrl) {
 							URL.revokeObjectURL(jpegUrl);
 						}
-						if (nextFrameIndex >= jpegFiles.length) {
+						if (nextFrameIndex >= jpegFiles.length || jpegFiles.length == 0) {
 							return;
 						}
-						jpegUrl = URL.createObjectURL(jpegFiles[nextFrameIndex++]);
+						jpegUrl = URL.createObjectURL(jpegFiles.shift());
 						
 						imageElement.onerror = function() {
 							setTimeout(function() {
