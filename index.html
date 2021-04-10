@@ -1,83 +1,83 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta charset="UTF-8">
+<meta charset="UTF-8">
 	
 <script>
 	'use strict';
 	var DEFAULT_FPS = 24,
 		DEFAULT_AUTOLOOP = true,
 		JPEG_MAGIG_NUMBER = [0xff, 0xd8, 0xff];
-		
+
 	var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame || window.setTimeout;
-	
+
 	var jpegs = [];
 	var oldReminder = new Uint8Array(0);
 
 	function splitMJPEG(mjpegUrl, callback) {
-fetch(mjpegUrl)
-.then(response => response.body)
-.then(rb => {
-  const reader = rb.getReader();
+		fetch(mjpegUrl)
+			.then(response => response.body)
+			.then(rb => {
+				const reader = rb.getReader();
 
-  return new ReadableStream({
-    start(controller) {
-      // The following function handles each data chunk
-      function push() {
-        // "done" is a Boolean and value a "Uint8Array"
-        reader.read().then( ({done, value}) => {
-          // If there is no more data to read
-          if (done) {
-            console.log('done', done);
-            controller.close();
-            return;
-          }
-          ///// Get the data and send it to the browser via the controller
-          ///controller.enqueue(value);
-          // Check chunks by logging to the console
-          ///console.log(done, value);
-          
-          
-          
-          var array = new Uint8Array(value),
-				startIndex;
-			///alert(array.length);
-			var tmpNew = new Uint8Array(oldReminder.length + array.length);
-			tmpNew.set(oldReminder);
-			tmpNew.set(array, oldReminder.length);
-			oldReminder = new Uint8Array(0);
-			
-			array = tmpNew;
+				return new ReadableStream({
+					start(controller) {
+						// The following function handles each data chunk
+						function push() {
+							// "done" is a Boolean and value a "Uint8Array"
+							reader.read().then(({done, value}) => {
+								// If there is no more data to read
+								if (done) {
+									console.log('done', done);
+									controller.close();
+									return;
+								}
+								///// Get the data and send it to the browser via the controller
+								///controller.enqueue(value);
+								// Check chunks by logging to the console
+								///console.log(done, value);
 
-			for (var i=0, ii=array.length; i<ii; ++i) {
-				if (array[i] === JPEG_MAGIG_NUMBER[0] && array[i+1] === JPEG_MAGIG_NUMBER[1] && array[i+2] === JPEG_MAGIG_NUMBER[2]) {
-					if (i>0 && typeof startIndex === 'number') {
-						///alert(array.subarray(startIndex, i));
-						///alert(String.fromCharCode.apply(null, array.subarray(startIndex, i)));
-						jpegs.push(new Blob([array.subarray(startIndex, i)], {type: 'image/jpeg'}));
+								
+								
+								var array = new Uint8Array(value),
+									startIndex;
+								///alert(array.length);
+								var tmpNew = new Uint8Array(oldReminder.length + array.length);
+								tmpNew.set(oldReminder);
+								tmpNew.set(array, oldReminder.length);
+								oldReminder = new Uint8Array(0);
+
+								array = tmpNew;
+
+								for (var i = 0, ii = array.length; i < ii; ++i) {
+									if (array[i] === JPEG_MAGIG_NUMBER[0] && array[i + 1] === JPEG_MAGIG_NUMBER[1] && array[i + 2] === JPEG_MAGIG_NUMBER[2]) {
+										if (i > 0 && typeof startIndex === 'number') {
+											///alert(array.subarray(startIndex, i));
+											///alert(String.fromCharCode.apply(null, array.subarray(startIndex, i)));
+											jpegs.push(new Blob([array.subarray(startIndex, i)], {type: 'image/jpeg'})
+										}
+										startIndex = i;
+									}
+								}
+								///console.log(startIndex, array.length);
+								oldReminder = array.subarray(startIndex);
+								if (oldReminder.length > 20000000) {
+									oldReminder = new Uint8Array(0); ///
+								}
+								////
+
+								callback(jpegs);
+
+
+								push();
+							})
+						}
+
+						push();
 					}
-					startIndex = i;
-				}
-			}
-			///console.log(startIndex, array.length);
-			oldReminder = array.subarray(startIndex);
-			if (oldReminder.length > 20000000) {
-				oldReminder = new Uint8Array(0); ///
-			}
-			////
-
-			callback(jpegs);
-          
-          
-          push();
-        })
-      }
-
-      push();
-    }
-});
-});	
-}
+				});
+			});
+	}
 
 	function playMJPEGInternal(wrapperElement, mjpegUrl, fps, autoloop) {
 		fps = (typeof fps === 'number') ? fps : DEFAULT_FPS;
@@ -104,32 +104,32 @@ fetch(mjpegUrl)
 							return;
 						}
 						jpegUrl = URL.createObjectURL(jpegFiles.shift());
-						
+
 						imageElement.onerror = function() {
 							setTimeout(function() {
 								requestAnimationFrame(showNextFrame);
-							}, 1000/fps);
+							}, 1000 / fps);
 						};
 
 						imageElement.onload = function() {
-							
+
 							if (imageElement) {
 								if (autoloop || nextFrameIndex < jpegFiles.length) {
 									nextFrameIndex = (nextFrameIndex === jpegFiles.length) ? 0 : nextFrameIndex;
 									setTimeout(function() {
 										requestAnimationFrame(showNextFrame);
-									}, 1000/fps);
+									}, 1000 / fps);
 								}
 							}
 						};
-						
+
 						imageElement.setAttribute('src', jpegUrl);
 					}
 				};
 
 				setTimeout(function() {
 					requestAnimationFrame(showNextFrame);
-				}, 1000/fps);
+				}, 1000 / fps);
 			}
 		});
 
@@ -141,11 +141,12 @@ fetch(mjpegUrl)
 					imageElement = undefined;
 				}
 			}
-		};	
+		};
 	};
-
-
+	
+	
 </script>
+	
 </head>
 <body>
 	<div id="mjpeg_stream_player_wrapper">
