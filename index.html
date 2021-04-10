@@ -54,7 +54,7 @@
 										if (i > 0 && typeof startIndex === 'number') {
 											///alert(array.subarray(startIndex, i));
 											///alert(String.fromCharCode.apply(null, array.subarray(startIndex, i)));
-											jpegs.push(new Blob([array.subarray(startIndex, i)], {type: 'image/jpeg'})
+											jpegs.push(new Blob([array.subarray(startIndex, i)], {type: 'image/jpeg'}));
 										}
 										startIndex = i;
 									}
