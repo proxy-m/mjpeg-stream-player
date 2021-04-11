@@ -7,8 +7,8 @@
 	'use strict';
 	var DEFAULT_FPS = 24,
 		DEFAULT_AUTOLOOP = true,
-		JPEG_MAGIG_NUMBER = [0xff, 0xd8, 0xff],
-		JPEG_END_NUMBER = [0xff, 0xd9];
+		JPEG_MAGIG_NUMBER = [0xff, 0xd8, 0xff]
+		;
 	var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame || window.setTimeout;
 
 	var jpegs = [];
@@ -45,19 +45,12 @@
 								array.set(tmp, oldReminder.length);
 								oldReminder = new Uint8Array(0);
 
-								find_jpeg_loop: for (var i = 0, len = array.length; i <= len - 2; ++i) {
+								for (var i = 0, len = array.length; i <= len - 2; ++i) {
 									if (array[i] === JPEG_MAGIG_NUMBER[0] && array[i + 1] === JPEG_MAGIG_NUMBER[1] && array[i + 2] === JPEG_MAGIG_NUMBER[2]) {
 										if (i > 0 && typeof iStart === 'number') {
 											///alert(array.subarray(iStart, i));
 											///alert(String.fromCharCode.apply(null, array.subarray(iStart, i)));
-											for (var iEnd = i + 2; iEnd <= len - 2; ++iEnd) {
-												if (array[iEnd] === JPEG_END_NUMBER[0] && array[iEnd + 1] === JPEG_END_NUMBER[1]) {
-													jpegs.push(new Blob([array.subarray(iStart, iEnd)], {type: 'image/jpeg'}));
-													iStart = i; // next iStart
-													i = iEnd + 1;
-													continue find_jpeg_loop;
-												}
-											}
+											jpegs.push(new Blob([array.subarray(iStart, i)], {type: 'image/jpeg'}));
 										}
 										iStart = i; // next iStart
 									}
