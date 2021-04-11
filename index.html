@@ -7,8 +7,8 @@
 	'use strict';
 	var DEFAULT_FPS = 24,
 		DEFAULT_AUTOLOOP = true,
-		JPEG_MAGIG_NUMBER = [0xff, 0xd8, 0xff];
-
+		JPEG_MAGIG_NUMBER = [0xff, 0xd8, 0xff],
+		JPEG_END_NUMBER = [0xff, 0xd9];
 	var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame || window.setTimeout;
 
 	var jpegs = [];
@@ -36,38 +36,40 @@
 								///controller.enqueue(value);
 								// Check chunks by logging to the console
 								///console.log(done, value);
-
 								
-								
-								var array = new Uint8Array(value),
-									startIndex;
-								///alert(array.length);
-								var tmpNew = new Uint8Array(oldReminder.length + array.length);
-								tmpNew.set(oldReminder);
-								tmpNew.set(array, oldReminder.length);
+								var tmp = new Uint8Array(value),
+									iStart;
+								///alert(tmp.length);
+								var array = new Uint8Array(oldReminder.length + tmp.length);
+								array.set(oldReminder);
+								array.set(tmp, oldReminder.length);
 								oldReminder = new Uint8Array(0);
 
-								array = tmpNew;
-
-								for (var i = 0, ii = array.length; i < ii; ++i) {
+								find_jpeg_loop: for (var i = 0, len = array.length; i <= len - 2; ++i) {
 									if (array[i] === JPEG_MAGIG_NUMBER[0] && array[i + 1] === JPEG_MAGIG_NUMBER[1] && array[i + 2] === JPEG_MAGIG_NUMBER[2]) {
-										if (i > 0 && typeof startIndex === 'number') {
-											///alert(array.subarray(startIndex, i));
-											///alert(String.fromCharCode.apply(null, array.subarray(startIndex, i)));
-											jpegs.push(new Blob([array.subarray(startIndex, i)], {type: 'image/jpeg'}));
+										if (i > 0 && typeof iStart === 'number') {
+											///alert(array.subarray(iStart, i));
+											///alert(String.fromCharCode.apply(null, array.subarray(iStart, i)));
+											for (var iEnd = i + 2; iEnd <= len - 2; ++iEnd) {
+												if (array[iEnd] === JPEG_END_NUMBER[0] && array[iEnd + 1] === JPEG_END_NUMBER[1]) {
+													jpegs.push(new Blob([array.subarray(iStart, iEnd)], {type: 'image/jpeg'}));
+													iStart = i; // next iStart
+													i = iEnd + 1;
+													continue find_jpeg_loop;
+												}
+											}
 										}
-										startIndex = i;
+										iStart = i; // next iStart
 									}
 								}
-								///console.log(startIndex, array.length);
-								oldReminder = array.subarray(startIndex);
+								///console.log(iStart, array.length);
+								oldReminder = array.subarray(iStart);
 								if (oldReminder.length > 20000000) {
 									oldReminder = new Uint8Array(0); ///
 								}
 								////
 
 								callback(jpegs);
-
 
 								push();
 							})
@@ -143,8 +145,6 @@
 			}
 		};
 	};
-	
-	
 </script>
 	
 </head>
